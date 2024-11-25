@@ -33,6 +33,11 @@ class Dispatcher {
     }
 
     formatJobs(searchString, texts, queueName) {
+
+        if (0 == texts.length) {
+            console.log('WARNING: No texts are available, no jobs will be created.');
+        }
+           
         let jobs = [];
         texts.forEach( j => jobs.push({searchString: searchString,
                                        textTitle: j,

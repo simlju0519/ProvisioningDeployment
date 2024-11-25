@@ -25,7 +25,7 @@ class Dispatcher {
     }
 
     dispatchSearch(searchString, jobs, socket) {
-        console.log('Searching for YOOO MAMMMA : ' + searchString);
+        console.log('Searching for : ' + searchString);
         let baseurl = 'http://' + this.WORKER + ':3000';
 
         if (0 >= jobs.length) {

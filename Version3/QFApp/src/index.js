@@ -8,7 +8,9 @@ const os = require('os');
 var path = require('path');
 
 // TextManager manages all the texts in the database
-const TextManager = require('./simpleTextManager.js');
+// Dispatcher manages the job queue
+const TextManager = require('./textManager');
+const Dispatcher = require('./dispatcher');
 
 // const serverIDMessage = { message: 'Server id: ' + os.hostname() };
 const serverIDMessage = {}; // No message
@@ -28,8 +30,7 @@ app.use('/', router);
 
 function startPage(req, res) {
     console.log('Loading start page from: ' + req.hostname);
-    // return res.render('index', serverIDMessage);
-    return listTextsPage(req, res);
+    return res.render('index', serverIDMessage);
 }
 
 function addTextPage(req, res) {
@@ -67,22 +68,11 @@ io.on('connection', socket => {
         // Let the Dispatcher format them as "jobs"
         // Then dispatch the search
         let tm = new TextManager();
+        let dispatcher = new Dispatcher();
         return tm.connect()
-            .then( () => tm.simpleSearch(message.search))
-            .then( result => result.flat().map(r => {
-                let cleaned = r.contents.replace(/[\n\r]/g, ' ').trim();
-                let startPosition = cleaned.search(message.search) - 50;
-                if (0 > startPosition) {
-                    startPosition = 0;
-                }                
-                return JSON.stringify({ textTitle: r.name, contents: cleaned.substring(startPosition,startPosition+100)})
-            }))
-            .then( result => result.forEach( r => socket.emit('answer', r )))
-            .then( () => socket.emit('done', {msg: 'done'} ))
-            .catch( err => {
-                console.log("Error while searching:", err)
-                socket.emit('abort', 'Could not complete search.');
-            });
+            .then( tm.listTexts )
+            .then( texts => dispatcher.formatJobs(message.search, texts, socket.id) )
+            .then( jobs => dispatcher.dispatchSearch(message.search, jobs, socket) );
     }
 
     function addText(message) {
@@ -99,7 +89,7 @@ io.on('connection', socket => {
             })
             .then( () => socket.emit('textAdded', title) )
             .then(() => console.log('Text added.'))
-            .catch( err => {
+            .catch( (err) => {
                 console.log('Could not add text. Error', err);
                 socket.emit('abort', 'Could not add text.');
             });
@@ -142,11 +132,5 @@ app.use(function(err, req, res, next) {
 server.listen(port, () => {
     console.log(`QuoteFinder app listening on port ${port}`);
     console.log('Server id:', os.hostname());
-		console.log("Starting a connection just to test it...");
-		try {
-				new TextManager().connect();
-		} catch (err) {
-				// Do nothing
-		}
 });
 

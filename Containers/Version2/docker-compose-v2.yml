@@ -1,0 +1,46 @@
+version: "3.8"
+services:
+  app:
+    image: qfappv3
+    ports:
+      - 8080:3000
+    volumes:
+      - ./QFApp/src:/app/src
+    environment:
+      REDIS_HOST: messagequeue
+      TEXTSTORE_HOST: textstore
+
+  worker:
+    image: qfworker
+    volumes:
+      - ./QFWorker/src:/app/src
+    deploy:
+      replicas: 1
+    environment:
+      REDIS_HOST: messagequeue
+      TEXTSTORE_HOST: textstore
+      
+  messagequeue:
+    image: redis:alpine
+    command: redis-server
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+      - redis-conf:/usr/local/etc/redis/redis.conf
+
+  textstore:
+    image: mongo
+    restart: always
+    command: --quiet --syslog
+    expose:
+      - "27017"
+    volumes:
+      - textstore-data:/data/db
+      - mongo-config:/data/configdb
+
+volumes:
+  redis-data:
+  redis-conf:
+  textstore-data:
+  mongo-config:
