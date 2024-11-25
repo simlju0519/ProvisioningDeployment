@@ -21,7 +21,7 @@ $(function(){
     });
 
     socket.on('done', () => {
-        console.log('All parts received');
+        console.log('All parts received BABBBYYY');
         $('#SearchStatus').html('');
         $('#Results').append('</ul>\n');
         $('#WorkerHeading').html('');
